@@ -139,6 +139,7 @@ def optimize_deliveries(
                         "order_id": order["id"],
                         "eta": base_time + timedelta(minutes=eta_minutes),
                         "status": "assigned",
+                        "instruction": _driver_instruction(order),
                     }
                 )
             route_nodes.append(to_node)
@@ -175,6 +176,12 @@ def _as_datetime(value: datetime | str) -> datetime:
     if isinstance(value, datetime):
         return value
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _driver_instruction(order: dict) -> str:
+    customer_note = str(order.get("delivery_instructions") or "").strip()
+    urgency = "Priority stop: protect the delivery window. " if order.get("priority") == "urgent" else ""
+    return f"{urgency}{customer_note or 'Confirm the recipient and complete proof of delivery.'}"
 
 
 def _minutes_from(base_time: datetime, value: datetime) -> int:

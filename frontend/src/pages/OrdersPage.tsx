@@ -13,7 +13,7 @@ export default function OrdersPage() {
   const query = useQuery({ queryKey:["orders"], queryFn:api.orders });
   const client = useQueryClient();
   const [search,setSearch] = useState(""); const [status,setStatus] = useState<"all"|OrderStatus>("all"); const [priority,setPriority] = useState<"all"|Priority>("all");
-  const [form,setForm] = useState<OrderInput>({ customerName:"",address:"",latitude:17.385,longitude:78.4867,demand:1,serviceMinutes:10,windowStart:localTime(10),windowEnd:localTime(16),priority:"normal" });
+  const [form,setForm] = useState<OrderInput>({ customerName:"",address:"",latitude:17.385,longitude:78.4867,demand:1,serviceMinutes:10,windowStart:localTime(10),windowEnd:localTime(16),priority:"normal",deliveryInstructions:"Deliver safely and confirm at the door." });
   const [message,setMessage] = useState<string|null>(null);
   const create = useMutation({ mutationFn:api.createOrder, onSuccess:(order)=>{ setMessage(`${order.id} created and ready for planning.`); setForm({...form,customerName:"",address:""}); client.invalidateQueries({queryKey:["orders"]}); client.invalidateQueries({queryKey:["dashboard"]}); } });
   const pick = useCallback((latitude:number,longitude:number)=>setForm((current)=>({...current,latitude:+latitude.toFixed(6),longitude:+longitude.toFixed(6)})),[]);

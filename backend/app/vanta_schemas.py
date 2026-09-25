@@ -28,6 +28,7 @@ class OrderCreate(CamelModel):
     window_start: datetime
     window_end: datetime
     priority: Priority = "normal"
+    delivery_instructions: str = Field(default="Deliver safely and confirm at the door.", max_length=500)
 
     @model_validator(mode="after")
     def validate_window(self) -> "OrderCreate":
@@ -85,6 +86,7 @@ class PlanStop(CamelModel):
     order_id: str
     eta: datetime
     status: str
+    instruction: str = "Confirm the recipient and complete proof of delivery."
 
 
 class RouteGeometry(CamelModel):

@@ -11,6 +11,7 @@ create table if not exists public.vanta_orders (
   window_start timestamptz not null,
   window_end timestamptz not null,
   priority text not null default 'normal' check (priority in ('normal', 'high', 'urgent')),
+  delivery_instructions text not null default 'Deliver safely and confirm at the door.',
   status text not null default 'unassigned' check (
     status in ('unassigned', 'assigned', 'in_progress', 'delivered', 'failed')
   ),

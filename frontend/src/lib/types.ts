@@ -13,6 +13,7 @@ export interface Order {
   windowStart: string;
   windowEnd: string;
   priority: Priority;
+  deliveryInstructions: string;
   status: OrderStatus;
   createdAt?: string;
 }
@@ -40,6 +41,7 @@ export interface PlanStop {
   orderId: string;
   eta: string;
   status: string;
+  instruction: string;
 }
 
 export interface DriverRoute {
