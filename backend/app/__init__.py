@@ -1,0 +1,1 @@
+"""CivicMind backend package."""
