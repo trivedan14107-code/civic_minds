@@ -1,1 +1,1 @@
-"""CivicMind backend package."""
+"""VANTA autonomous delivery operations backend."""

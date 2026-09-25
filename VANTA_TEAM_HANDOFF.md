@@ -48,7 +48,6 @@ Do not add payments, chat, ratings, full customer accounts, or production naviga
 - Supabase Postgres
 - Google OR-Tools installed locally for vehicle-routing optimization
 - openrouteservice for road distance/time matrices and route geometry
-- Groq only for short human-readable exception summaries
 - Pytest
 
 ### Important map rule
@@ -69,7 +68,6 @@ Do not use Google Maps, Mapbox, or paid map services. The frontend map must use 
 | Re-planning and simulations | Trigger and visualize | Own |
 | Supabase secrets | Never receive | Own |
 | openrouteservice key | Never receive | Own |
-| Groq key | Never receive | Own |
 | End-to-end tests | UI smoke tests | API and optimizer tests |
 | Git branch | `frontend/dashboard` | `codex/backend-ai` |
 
@@ -184,7 +182,6 @@ Codex owns:
 - Deterministic demo simulation endpoints.
 - API tests and optimizer tests.
 - Safe fallback to straight-line distance if openrouteservice is unavailable.
-- Optional Groq summary after optimization; Groq must never decide the route.
 
 ### Optimization inputs
 
@@ -413,7 +410,7 @@ Frontend:
 
 Backend:
 
-1. Replace the old civic issue domain with VANTA domain models.
+1. Use only the VANTA order, driver, plan and task domain models.
 2. Add schema and seed data.
 3. Add CRUD APIs.
 4. Implement matrix provider and cache.

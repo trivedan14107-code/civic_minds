@@ -17,7 +17,7 @@ OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
 
 ## Supabase configuration
 
-The backend currently uses the existing `civic-minds` Supabase project while keeping VANTA data in separate `vanta_*` tables. Set these values in the local, ignored `.env` file:
+Set these values in the local, ignored `.env` file:
 
 ```env
 SUPABASE_URL=https://vlehuwrquiprjumjrkbi.supabase.co
@@ -26,7 +26,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_backend_only_service_role_key
 
 The service-role key must never be committed or exposed to the frontend.
 
-Apply `migrations/20260926_create_vanta_core.sql` once through the Supabase SQL editor. It creates and seeds three Hyderabad drivers and ten synthetic orders without changing the older CivicMind tables.
+Apply `migrations/20260926_create_vanta_core.sql` once through the Supabase SQL editor. It creates the VANTA schema and seeds three Hyderabad drivers and ten synthetic orders.
 
 ## Routing configuration
 
@@ -50,8 +50,6 @@ Google OR-Tools runs locally and has no per-request cost. The current vehicle-ro
 - Locked in-progress tasks during re-planning.
 - A short deterministic solve limit suitable for a demo.
 
-Groq is optional and must not calculate routes or assignments.
-
 ## VANTA API
 
 - `GET /api/health`
@@ -67,33 +65,6 @@ Groq is optional and must not calculate routes or assignments.
 
 OpenAPI documentation is available at `http://127.0.0.1:8000/docs`.
 
-## Groq configuration
-
-Set `GROQ_API_KEY` in the local, ignored `.env` file. Never commit `.env` or an API key. If the key is not configured, the backend returns a safe manual-review result so the rest of the demo still works.
-
-## Location and Google Maps
-
-Every `POST /api/issues` request must include `latitude` and `longitude`. The frontend should request the browser's current location when the user selects a photo, show a Google Maps marker, and let the user correct the pin before submission.
-
-Optional location fields are:
-
-- `location_accuracy_meters`: value from `position.coords.accuracy`.
-- `location_source`: `gps` or `manual`.
-- `address`: a Google Maps formatted address, when already resolved by the frontend.
-
-Set `GOOGLE_MAPS_API_KEY` on the backend to reverse-geocode coordinates when the frontend does not supply an address. Keep this server key out of frontend code. The frontend should use a separate browser-restricted Maps JavaScript API key.
-
-Example multipart payload:
-
-```text
-image=<file>
-description=Large pothole blocking the left lane
-latitude=17.3850
-longitude=78.4867
-location_accuracy_meters=12.4
-location_source=gps
-```
-
 ## Current MVP behavior
 
 - Supabase stores orders, drivers, versioned plans and executable tasks.
@@ -102,5 +73,3 @@ location_source=gps
 - Delay simulation updates driver availability and creates a new plan version.
 - Reassigned orders include an explicit before/after change reason.
 - The API serializes frontend-facing fields in camelCase.
-
-The older CivicMind endpoints and tables remain temporarily available for rollback while the team completes the product pivot.

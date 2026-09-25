@@ -1,4 +1,4 @@
--- VANTA delivery orchestration domain. Existing CivicMind tables are untouched.
+-- VANTA delivery orchestration domain.
 
 create table if not exists public.vanta_orders (
   id text primary key,

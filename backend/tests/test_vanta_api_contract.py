@@ -28,6 +28,12 @@ def test_frontend_contract_routes_are_registered() -> None:
     assert expected <= set(paths)
 
 
+def test_retired_civicmind_routes_are_not_registered() -> None:
+    paths = app.openapi()["paths"]
+    retired_fragments = ("/issues", "/departments", "/analyze-frame")
+    assert not any(fragment in path for path in paths for fragment in retired_fragments)
+
+
 def test_order_request_uses_camel_case_fields() -> None:
     order_schema = app.openapi()["components"]["schemas"]["OrderCreate"]
     assert "customerName" in order_schema["properties"]

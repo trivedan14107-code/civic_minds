@@ -20,7 +20,8 @@ def get_order(order_id: str) -> dict | None:
 def create_order(payload: OrderCreate) -> dict:
     data = payload.model_dump(mode="json")
     data.update({"id": _id("ORD"), "status": "unassigned"})
-    return get_supabase().table("vanta_orders").insert(data).select("*").single().execute().data
+    result = get_supabase().table("vanta_orders").insert(data).execute()
+    return _first(result.data, "ORDER_CREATE_FAILED", "Supabase did not return the created order.")
 
 
 def list_drivers() -> list[dict]:
@@ -36,7 +37,8 @@ def get_driver(driver_id: str) -> dict | None:
 def create_driver(payload: DriverCreate) -> dict:
     data = payload.model_dump(mode="json")
     data.update({"id": _id("DRV"), "current_delay_minutes": 0})
-    return get_supabase().table("vanta_drivers").insert(data).select("*").single().execute().data
+    result = get_supabase().table("vanta_drivers").insert(data).execute()
+    return _first(result.data, "DRIVER_CREATE_FAILED", "Supabase did not return the created driver.")
 
 
 def get_active_plan() -> dict | None:
@@ -116,7 +118,8 @@ def build_plan(reason: str) -> dict:
         "changes": changes,
         "routing_source": routing_source,
     }
-    created = supabase.table("vanta_plans").insert(plan_data).select("*").single().execute().data
+    plan_result = supabase.table("vanta_plans").insert(plan_data).execute()
+    created = _first(plan_result.data, "PLAN_CREATE_FAILED", "Supabase did not return the created plan.")
 
     task_rows = []
     for route in optimized.routes:
@@ -173,7 +176,8 @@ def update_task_status(
     updates: dict = {"status": status}
     if status == "completed":
         updates["completed_at"] = datetime.now(timezone.utc).isoformat()
-    updated = supabase.table("vanta_tasks").update(updates).eq("id", task_id).select("*").single().execute().data
+    update_result = supabase.table("vanta_tasks").update(updates).eq("id", task_id).execute()
+    updated = _first(update_result.data, "TASK_UPDATE_FAILED", "Supabase did not return the updated task.")
     order_status = {"assigned": "assigned", "in_progress": "in_progress", "completed": "delivered", "failed": "failed"}[status]
     supabase.table("vanta_orders").update({"status": order_status}).eq("id", task["order_id"]).execute()
     if latitude is not None and longitude is not None:
@@ -242,6 +246,12 @@ def _plan_changes(previous: dict[str, str], current: dict[str, str]) -> list[dic
                 }
             )
     return changes
+
+
+def _first(rows: list[dict] | None, code: str, message: str) -> dict:
+    if not rows:
+        raise VantaError(code, message)
+    return rows[0]
 
 
 def _id(prefix: str) -> str:
