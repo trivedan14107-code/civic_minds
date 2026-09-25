@@ -18,8 +18,9 @@ from .services import (
     validate_location,
 )
 from .supabase_client import get_supabase
+from .vanta_router import router as vanta_router
 
-app = FastAPI(title="CivicMind API", version="0.2.0")
+app = FastAPI(title="VANTA API", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +28,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(vanta_router)
 
 
 def issue_response(issue: dict) -> IssueResponse:
@@ -44,7 +46,7 @@ def upload_to_bucket(bucket: str, path: str, content: bytes) -> str:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "civicmind-backend", "database": "supabase"}
+    return {"status": "ok", "service": "vanta-backend", "database": "supabase"}
 
 
 @app.post("/api/issues", response_model=IssueResponse, status_code=201)
