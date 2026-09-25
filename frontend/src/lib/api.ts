@@ -37,7 +37,12 @@ export const api = {
   simulateDelay: (driverId: string, delayMinutes: number) => request<Plan>("/api/simulations/driver-delay", { method: "POST", body: JSON.stringify({ driverId, delayMinutes }) }),
   updateTask: (taskId: string, status: "assigned" | "in_progress" | "completed" | "failed") =>
     request(`/api/tasks/${taskId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  notifyCustomer: (orderId: string) =>
+    request<{ success: boolean; message: string; availability: string }>(`/api/orders/${orderId}/notify-customer`, { method: "POST" }),
+  updateAvailability: (orderId: string, availability: "confirmed_available" | "pending_verification" | "unavailable_reschedule") =>
+    request<Order>(`/api/orders/${orderId}/availability`, { method: "PATCH", body: JSON.stringify({ availability }) }),
 };
+
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";

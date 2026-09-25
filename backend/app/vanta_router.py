@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from . import vanta_service
 from .vanta_schemas import (
+    CustomerAvailabilityUpdate,
     Dashboard,
     DelaySimulationRequest,
     Driver,
@@ -38,6 +39,23 @@ def order(order_id: str) -> dict:
     if not result:
         raise _error(404, "ORDER_NOT_FOUND", "The selected order does not exist.")
     return result
+
+
+@router.post("/orders/{order_id}/notify-customer")
+def notify_customer(order_id: str) -> dict:
+    try:
+        return vanta_service.notify_customer(order_id)
+    except vanta_service.VantaError as exc:
+        raise _error(404, exc.code, exc.message) from exc
+
+
+@router.patch("/orders/{order_id}/availability", response_model=Order)
+def update_availability(order_id: str, payload: CustomerAvailabilityUpdate) -> dict:
+    try:
+        return vanta_service.update_customer_availability(order_id, payload.availability)
+    except vanta_service.VantaError as exc:
+        raise _error(404, exc.code, exc.message) from exc
+
 
 
 @router.get("/drivers", response_model=list[Driver])

@@ -140,7 +140,9 @@ def optimize_deliveries(
                         "eta": base_time + timedelta(minutes=eta_minutes),
                         "status": "assigned",
                         "instruction": _driver_instruction(order),
+                        "customer_availability": order.get("customer_availability", "confirmed_available"),
                     }
+
                 )
             route_nodes.append(to_node)
             index = next_index

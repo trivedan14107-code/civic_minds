@@ -16,6 +16,7 @@ class CamelModel(BaseModel):
 Priority = Literal["normal", "high", "urgent"]
 OrderStatus = Literal["unassigned", "assigned", "in_progress", "delivered", "failed"]
 DriverStatus = Literal["available", "active", "delayed", "offline"]
+CustomerAvailability = Literal["confirmed_available", "pending_verification", "unavailable_reschedule"]
 
 
 class OrderCreate(CamelModel):
@@ -29,6 +30,7 @@ class OrderCreate(CamelModel):
     window_end: datetime
     priority: Priority = "normal"
     delivery_instructions: str = Field(default="Deliver safely and confirm at the door.", max_length=500)
+    customer_availability: CustomerAvailability = "confirmed_available"
 
     @model_validator(mode="after")
     def validate_window(self) -> "OrderCreate":
@@ -41,6 +43,11 @@ class Order(OrderCreate):
     id: str
     status: OrderStatus = "unassigned"
     created_at: datetime | None = None
+
+
+class CustomerAvailabilityUpdate(CamelModel):
+    availability: CustomerAvailability
+
 
 
 class DriverCreate(CamelModel):
@@ -87,6 +94,8 @@ class PlanStop(CamelModel):
     eta: datetime
     status: str
     instruction: str = "Confirm the recipient and complete proof of delivery."
+    customer_availability: CustomerAvailability = "confirmed_available"
+
 
 
 class RouteGeometry(CamelModel):

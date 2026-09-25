@@ -1,6 +1,7 @@
 export type Priority = "normal" | "high" | "urgent";
 export type OrderStatus = "unassigned" | "assigned" | "in_progress" | "delivered" | "failed";
 export type DriverStatus = "available" | "active" | "delayed" | "offline";
+export type CustomerAvailability = "confirmed_available" | "pending_verification" | "unavailable_reschedule";
 
 export interface Order {
   id: string;
@@ -14,6 +15,7 @@ export interface Order {
   windowEnd: string;
   priority: Priority;
   deliveryInstructions: string;
+  customerAvailability?: CustomerAvailability;
   status: OrderStatus;
   createdAt?: string;
 }
@@ -42,6 +44,7 @@ export interface PlanStop {
   eta: string;
   status: string;
   instruction: string;
+  customerAvailability?: CustomerAvailability;
 }
 
 export interface DriverRoute {
