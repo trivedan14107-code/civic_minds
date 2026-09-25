@@ -3,15 +3,19 @@ import uuid
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import get_settings
 from .schemas import DecisionRequest, FrameAnalysisResponse, IssueResponse, StatusUpdate
 from .services import (
     DEPARTMENT_BY_CATEGORY,
     calculate_priority,
     classify_with_groq,
+    distance_meters,
     image_fingerprint,
     mock_cctv_verification,
     mock_yolo_detection,
+    reverse_geocode,
     validate_image,
+    validate_location,
 )
 from .supabase_client import get_supabase
 
@@ -47,14 +51,22 @@ def health() -> dict[str, str]:
 async def create_issue(
     description: str = Form(..., min_length=3),
     image: UploadFile = File(...),
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    location_accuracy_meters: float | None = Form(None),
+    location_source: str = Form("gps"),
+    address: str | None = Form(None),
     cctv_frame: UploadFile | None = File(None),
 ) -> IssueResponse:
     try:
         supabase = get_supabase()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    try:
+        validate_location(latitude, longitude, location_accuracy_meters, location_source)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     image_bytes = await image.read()
     try:
@@ -63,7 +75,7 @@ async def create_issue(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    idempotency_key = f"{exact_hash}:{round(latitude or 0, 4)}:{round(longitude or 0, 4)}"
+    idempotency_key = f"{exact_hash}:{round(latitude, 4)}:{round(longitude, 4)}"
     existing_result = (
         supabase.table("issues")
         .select("*")
@@ -92,19 +104,29 @@ async def create_issue(
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=f"Invalid CCTV frame: {exc}") from exc
 
-    nearby_result = supabase.table("issues").select("latitude,longitude").execute()
-    similar_count = 0
-    for candidate in nearby_result.data or []:
-        if all(value is not None for value in (candidate.get("latitude"), candidate.get("longitude"), latitude, longitude)):
-            if abs(candidate["latitude"] - latitude) < 0.001 and abs(candidate["longitude"] - longitude) < 0.001:
-                similar_count += 1
-
     issue_id = f"ISS-{uuid.uuid4().hex[:8].upper()}"
     yolo_detections = mock_yolo_detection(citizen_image)
     cctv_verified, cctv_reason = mock_cctv_verification(cctv_image)
     ai_result = classify_with_groq(description, citizen_image, cctv_image)
+    nearby_result = supabase.table("issues").select("latitude,longitude,category").eq(
+        "category", ai_result["category"]
+    ).execute()
+    similar_count = sum(
+        1
+        for candidate in nearby_result.data or []
+        if candidate.get("latitude") is not None
+        and candidate.get("longitude") is not None
+        and distance_meters(
+            latitude,
+            longitude,
+            candidate["latitude"],
+            candidate["longitude"],
+        )
+        <= get_settings().duplicate_radius_meters
+    )
     priority, score = calculate_priority(ai_result["severity"], similar_count, ai_result["confidence"])
     status = "under_review" if ai_result["needs_manual_review"] else "submitted"
+    resolved_address = address.strip() if address and address.strip() else await reverse_geocode(latitude, longitude)
 
     image_path = upload_to_bucket("issue-images", f"{issue_id}/citizen.jpg", image_bytes)
     cctv_path = None
@@ -119,6 +141,9 @@ async def create_issue(
         "cctv_frame_path": cctv_path,
         "latitude": latitude,
         "longitude": longitude,
+        "location_accuracy_meters": location_accuracy_meters,
+        "location_source": location_source,
+        "address": resolved_address,
         "category": ai_result["category"],
         "severity": ai_result["severity"],
         "priority": priority,
@@ -205,4 +230,3 @@ def dashboard_metrics() -> dict:
         by_status[issue["status"]] = by_status.get(issue["status"], 0) + 1
         by_department[issue["department"]] = by_department.get(issue["department"], 0) + 1
     return {"total": len(issues), "by_status": by_status, "by_department": by_department}
-

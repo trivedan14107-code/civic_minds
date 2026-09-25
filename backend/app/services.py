@@ -1,8 +1,10 @@
 import hashlib
 import io
 import json
+import math
 
 import imagehash
+import httpx
 from PIL import Image
 
 from .config import get_settings
@@ -26,6 +28,60 @@ DEPARTMENT_BY_CATEGORY = {
     "traffic_obstruction": "Traffic Management",
     "other": "Municipal Review",
 }
+
+LOCATION_SOURCES = {"gps", "manual"}
+
+
+def validate_location(
+    latitude: float,
+    longitude: float,
+    accuracy_meters: float | None,
+    source: str,
+) -> None:
+    if not -90 <= latitude <= 90:
+        raise ValueError("Latitude must be between -90 and 90")
+    if not -180 <= longitude <= 180:
+        raise ValueError("Longitude must be between -180 and 180")
+    if accuracy_meters is not None and accuracy_meters < 0:
+        raise ValueError("Location accuracy cannot be negative")
+    if source not in LOCATION_SOURCES:
+        raise ValueError("Location source must be 'gps' or 'manual'")
+
+
+def distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Return the great-circle distance between two GPS points."""
+    earth_radius_meters = 6_371_000
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    haversine = (
+        math.sin(delta_lat / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    )
+    return 2 * earth_radius_meters * math.asin(math.sqrt(haversine))
+
+
+async def reverse_geocode(latitude: float, longitude: float) -> str | None:
+    """Resolve a GPS point once; return None when geocoding is not configured or fails."""
+    api_key = get_settings().google_maps_api_key
+    if not api_key:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"latlng": f"{latitude},{longitude}", "key": api_key},
+            )
+            response.raise_for_status()
+            payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+
+    results = payload.get("results") or []
+    if payload.get("status") != "OK" or not results:
+        return None
+    return results[0].get("formatted_address")
 
 
 def validate_image(content: bytes, filename: str | None) -> Image.Image:

@@ -31,6 +31,11 @@ class IssueResponse(BaseModel):
     needs_manual_review: bool
     yolo_detections: list
     evidence_reason: str | None
+    latitude: float
+    longitude: float
+    location_accuracy_meters: float | None = None
+    location_source: str
+    address: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
