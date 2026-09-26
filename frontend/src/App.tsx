@@ -9,7 +9,7 @@ export default function App() {
       <header className="sticky top-0 z-30 border-b border-line bg-ink/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-lime font-black text-ink shadow-glow">V</div>
+            <img src="/vanta-logo.png" alt="VANTA logo" className="h-10 w-10 rounded-xl object-cover shadow-glow" />
             <div>
               <div className="font-black tracking-[.22em]">VANTA</div>
               <div className="text-[10px] uppercase tracking-[.16em] text-slate-500">Autonomous Operations</div>
