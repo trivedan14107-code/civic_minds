@@ -31,7 +31,20 @@ export default function OperationsMap({
     if (!container.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: container.current,
-      style: "https://tiles.openfreemap.org/styles/liberty",
+      // Keyless raster map source. Keeping the style inline avoids a blank map
+      // when the hosted OpenFreeMap style document is temporarily unavailable.
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+            attribution: "© OpenStreetMap contributors",
+          },
+        },
+        layers: [{ id: "osm", type: "raster", source: "osm" }],
+      },
       center: [78.4867, 17.385],
       zoom: 11,
       attributionControl: false,
