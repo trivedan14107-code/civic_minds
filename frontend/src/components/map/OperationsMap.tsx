@@ -61,6 +61,7 @@ export default function OperationsMap({
       // Render Order Markers with sequence numbers & detailed instructions
       orders.forEach((order) => {
         let sequenceNum: number | null = null;
+        let isFirstStop = false;
         let driverColor = "#f59e0b"; // amber fallback for unassigned
         let driverName = "";
 
@@ -70,6 +71,7 @@ export default function OperationsMap({
             const stop = route.stops.find((s) => s.orderId === order.id);
             if (stop) {
               sequenceNum = stop.sequence;
+              isFirstStop = stop.sequence === 1;
               driverColor = route.color;
               const drv = drivers.find((d) => d.id === route.driverId);
               if (drv) driverName = drv.name;
@@ -88,9 +90,10 @@ export default function OperationsMap({
 
         const badgeText = sequenceNum ? `${sequenceNum}` : order.status === "delivered" ? "✓" : "?";
         const bgStyle = sequenceNum ? driverColor : order.status === "delivered" ? "#10b981" : "#f59e0b";
+        const markerShadow = isFirstStop ? `0 0 0 5px rgba(163,230,53,.3), 0 0 22px ${driverColor}` : "0 8px 16px rgba(0,0,0,.35)";
 
         el.innerHTML = `
-          <div style="background-color: ${bgStyle}" class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-black text-white shadow-xl transition-transform hover:scale-125">
+          <div style="background-color: ${bgStyle};box-shadow:${markerShadow}" class="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-xs font-black text-white transition-transform hover:scale-125">
             ${badgeText}
           </div>
         `;
@@ -107,7 +110,7 @@ export default function OperationsMap({
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;padding-bottom:4px;margin-bottom:6px;">
               <span style="color:#a3e635;font-weight:bold;">${
                 sequenceNum
-                  ? `Stop #${sequenceNum} (${sequenceNum === 1 ? "1st Stop" : sequenceNum === 2 ? "2nd Stop" : sequenceNum === 3 ? "3rd Stop" : sequenceNum + "th Stop"})`
+                  ? `Stop #${sequenceNum} (${sequenceNum === 1 ? "FIRST STOP · GO HERE NEXT" : sequenceNum === 2 ? "SECOND STOP" : sequenceNum === 3 ? "THIRD STOP" : sequenceNum + "th STOP"})`
                   : "Unassigned Order"
               }</span>
               ${availBadge}

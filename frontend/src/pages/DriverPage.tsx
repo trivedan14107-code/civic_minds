@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, Bot, CheckCircle2, ChevronLeft, Clock3, MapPin, Navigation, Play, TriangleAlert, UserCheck, UserX } from "lucide-react";
+import { Bell, Bot, CheckCircle2, ChevronLeft, Clock3, MapPin, Navigation, Play, Sparkles, TriangleAlert, UserCheck, UserX } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorPanel, Loading } from "../components/Feedback";
@@ -8,11 +8,16 @@ import OperationsMap from "../components/map/OperationsMap";
 import { useDashboard } from "../hooks/useDashboard";
 import { api, errorMessage } from "../lib/api";
 
+function RouteIconPlaceholder() {
+  return <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-cyan/10 text-cyan"><Sparkles size={22} /></div>;
+}
+
 export default function DriverPage() {
   const { driverId } = useParams();
   const dashboard = useDashboard();
   const client = useQueryClient();
   const [notice, setNotice] = useState<string | null>(null);
+  const [journeyStarted, setJourneyStarted] = useState(() => sessionStorage.getItem(`vanta-journey-${driverId}`) === "started");
 
   const refresh = () => client.invalidateQueries({ queryKey: ["dashboard"] });
 
@@ -25,6 +30,16 @@ export default function DriverPage() {
     mutationFn: () => api.simulateDelay(driverId!, 30),
     onSuccess: () => {
       setNotice("Reported 30 min delay. VANTA AI re-planned remaining stops.");
+      refresh();
+    },
+  });
+
+  const startJourneyMutation = useMutation({
+    mutationFn: () => api.optimize("driver_started_journey"),
+    onSuccess: () => {
+      sessionStorage.setItem(`vanta-journey-${driverId}`, "started");
+      setJourneyStarted(true);
+      setNotice("VANTA evaluated your parcels and published the best delivery sequence.");
       refresh();
     },
   });
@@ -43,15 +58,16 @@ export default function DriverPage() {
   const driver = dashboard.data.drivers.find((d) => d.id === driverId);
   if (!driver) return <ErrorPanel message="Selected driver profile does not exist." />;
 
-  const route = dashboard.data.activePlan?.routes.find((r) => r.driverId === driverId);
+  const assignedRoute = dashboard.data.activePlan?.routes.find((r) => r.driverId === driverId);
+  const route = journeyStarted ? assignedRoute : undefined;
   const orders = new Map(dashboard.data.orders.map((o) => [o.id, o]));
   const next = route?.stops.find((s) => s.status !== "completed");
   const nextOrder = next ? orders.get(next.orderId) : null;
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl space-y-4">
-      <Link to="/driver-portal" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition">
-        <ChevronLeft size={16} /> Back to Driver Selection
+      <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition">
+        <ChevronLeft size={16} /> Sign out
       </Link>
 
       {/* Single Driver Profile Lock Header */}
@@ -60,7 +76,7 @@ export default function DriverPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md bg-lime/20 px-2 py-0.5 text-[10px] font-black uppercase text-lime">Active Driver Profile</span>
+                <span className="rounded-md bg-lime/20 px-2 py-0.5 text-[10px] font-black uppercase text-lime">Signed in driver</span>
                 <span className="text-xs text-slate-400">ID: {driver.id}</span>
               </div>
               <h1 className="mt-2 text-3xl font-black">{driver.name}</h1>
@@ -68,10 +84,10 @@ export default function DriverPage() {
             <StatusBadge value={driver.status} />
           </div>
           <div className="mt-4 flex flex-wrap gap-4 text-xs font-bold text-slate-300">
-            <span>📦 {route?.stops.length || 0} Total Stops</span>
-            <span>🛣️ {route?.distanceKm.toFixed(1) || "0.0"} km Total Route</span>
-            <span>⏱️ ~{route?.estimatedMinutes || 0} min Route Time</span>
-            <span>🚛 Load: {route?.load || 0}/{driver.capacity} Units</span>
+            <span>📦 {assignedRoute?.stops.length || 0} Parcels from branch</span>
+            <span>🛣️ {route?.distanceKm.toFixed(1) || "—"} km Planned Route</span>
+            <span>⏱️ {route ? `~${route.estimatedMinutes} min` : "Waiting for AI"}</span>
+            <span>🚛 Load: {assignedRoute?.load || 0}/{driver.capacity} Units</span>
           </div>
         </div>
       </header>
@@ -82,12 +98,21 @@ export default function DriverPage() {
         </div>
       )}
 
+      {!journeyStarted && (
+        <section className="panel border-cyan/30 bg-gradient-to-r from-cyan/10 via-panel to-lime/10 p-5 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div><div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-cyan"><Sparkles size={15} /> AI route decision ready</div><h2 className="mt-2 text-2xl font-black text-white">Start your journey when you leave the branch</h2><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">VANTA will evaluate every assigned parcel, delivery window and route constraint, then highlight exactly which customer to visit first.</p></div>
+            <button className="button-primary shrink-0" disabled={startJourneyMutation.isPending} onClick={() => startJourneyMutation.mutate()}><Sparkles size={17} /> {startJourneyMutation.isPending ? "Deciding route…" : "Start journey"}</button>
+          </div>
+        </section>
+      )}
+
       {/* Map showing ONLY this driver's single route & stops */}
       <div className="panel p-2">
         <OperationsMap
           orders={dashboard.data.orders}
           drivers={[driver]}
-          plan={dashboard.data.activePlan}
+          plan={journeyStarted ? dashboard.data.activePlan : null}
           selectedDriverId={driver.id}
           className="h-[320px] sm:h-[400px]"
         />
@@ -187,6 +212,8 @@ export default function DriverPage() {
             </a>
           </div>
         </section>
+      ) : !journeyStarted ? (
+        <section className="panel border-dashed border-line p-8 text-center"><RouteIconPlaceholder /><h2 className="mt-3 text-xl font-black">Your parcels are waiting for a route</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Start the journey above and VANTA will choose the first customer, then guide you through every next stop.</p></section>
       ) : (
         <section className="panel p-8 text-center space-y-3">
           <CheckCircle2 className="mx-auto text-lime" size={40} />
@@ -204,7 +231,7 @@ export default function DriverPage() {
       {/* Stop Sequence List with Detailed Instructions */}
       <section className="panel p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-sm uppercase tracking-wider text-slate-300">Route Stop Sequence</h2>
+          <h2 className="font-bold text-sm uppercase tracking-wider text-slate-300">AI delivery sequence</h2>
           <button
             className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200"
             disabled={delayMutation.isPending}

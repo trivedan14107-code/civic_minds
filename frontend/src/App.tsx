@@ -1,9 +1,7 @@
-import { Link, NavLink, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import DriverHomePage from "./pages/DriverHomePage";
 import DriverPage from "./pages/DriverPage";
-import DriversPage from "./pages/DriversPage";
-import OrdersPage from "./pages/OrdersPage";
 
 export default function App() {
   return (
@@ -17,60 +15,22 @@ export default function App() {
               <div className="text-[10px] uppercase tracking-[.16em] text-slate-500">Autonomous Operations</div>
             </div>
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isActive ? "bg-lime/15 text-lime" : "text-slate-400 hover:text-slate-100"
-                }`
-              }
-            >
-              Dashboard
-            </NavLink>
-            <NavLink
-              to="/orders"
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isActive ? "bg-lime/15 text-lime" : "text-slate-400 hover:text-slate-100"
-                }`
-              }
-            >
-              Orders
-            </NavLink>
-            <NavLink
-              to="/drivers"
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isActive ? "bg-lime/15 text-lime" : "text-slate-400 hover:text-slate-100"
-                }`
-              }
-            >
-              Drivers
-            </NavLink>
-            <NavLink
-              to="/driver-portal"
-              className={({ isActive }) =>
-                `rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  isActive ? "bg-lime/15 text-lime" : "text-slate-400 hover:text-slate-100"
-                }`
-              }
-            >
-              Driver View
-            </NavLink>
-          </nav>
+          <div className="hidden items-center gap-2 text-xs font-semibold text-slate-400 sm:flex">
+            <span className="h-2 w-2 rounded-full bg-lime shadow-[0_0_14px_rgba(163,230,53,.8)]" />
+            Driver operations online
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl p-4 sm:p-6">
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/drivers" element={<DriversPage />} />
+          <Route path="/" element={<DriverHomePage />} />
           <Route path="/driver-portal" element={<DriverHomePage />} />
           <Route path="/driver/:driverId" element={<DriverPage />} />
-          <Route path="*" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/orders" element={<Navigate to="/" replace />} />
+          <Route path="/drivers" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
