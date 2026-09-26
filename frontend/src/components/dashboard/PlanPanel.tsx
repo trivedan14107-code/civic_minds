@@ -170,9 +170,10 @@ export default function PlanPanel({ plan, drivers, selectedDriverId, onSelect, o
                     <div className="text-[11px] font-bold text-cyan flex items-center gap-1">
                       <Bot size={13} /> Detailed Delivery Instructions:
                     </div>
-                    <div className="text-slate-200 text-xs leading-relaxed">
-                      {orderDetails?.deliveryInstructions || stop.instruction || "Deliver safely and confirm at the door."}
+                    <div className="whitespace-pre-line text-slate-200 text-xs leading-relaxed font-medium">
+                      {stop.instruction}
                     </div>
+
                   </div>
 
                   {/* Customer Availability Status & Action */}

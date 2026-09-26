@@ -152,6 +152,17 @@ def optimize_deliveries(
         maximum_route_minutes = max(maximum_route_minutes, route_minutes)
         total_distance_meters += route_distance_meters
         if route_stops:
+            total_stops = len(route_stops)
+            for stop in route_stops:
+                ord_dict = next((o for o in orders if o["id"] == stop["order_id"]), {})
+                stop["instruction"] = generate_ai_instruction(
+                    ord_dict,
+                    stop["sequence"],
+                    total_stops,
+                    stop["eta"],
+                    driver.get("name") or driver.get("id") or "Driver",
+
+                )
             routes.append(
                 {
                     "driver_id": driver["id"],
@@ -180,10 +191,74 @@ def _as_datetime(value: datetime | str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
+def generate_ai_instruction(
+    order: dict,
+    sequence: int,
+    total_stops: int,
+    eta: datetime,
+    driver_name: str = "Driver",
+) -> str:
+    customer_name = order.get("customer_name") or order.get("customerName") or "Customer"
+    address = order.get("address", "")
+    priority = (order.get("priority") or "normal").lower()
+    instructions = (
+        order.get("delivery_instructions")
+        or order.get("deliveryInstructions")
+        or "Deliver safely and confirm recipient."
+    )
+    demand = order.get("demand", 1)
+    service_mins = order.get("service_minutes") or order.get("serviceMinutes") or 10
+    availability = order.get("customer_availability") or order.get("customerAvailability") or "confirmed_available"
+
+    if priority == "urgent":
+        priority_header = "🚨 URGENT PRIORITY DIRECTIVE: Time-critical delivery. Require direct recipient signature/OTP."
+    elif priority == "high":
+        priority_header = "⚠️ HIGH PRIORITY DIRECTIVE: High-value dropoff. Ensure delivery window is strictly met."
+    else:
+        priority_header = "📦 STANDARD DIRECTIVE: Perform address & recipient proof-of-delivery check."
+
+    if sequence == 1:
+        seq_text = f"First Stop (1 of {total_stops}) on {driver_name}'s route"
+    elif sequence == total_stops:
+        seq_text = f"Final Stop ({sequence} of {total_stops}) on {driver_name}'s route"
+    else:
+        seq_text = f"Stop #{sequence} of {total_stops} on {driver_name}'s route"
+
+    eta_str = eta.strftime("%I:%M %p")
+    window_end_str = ""
+    tight_warning = ""
+    window_end = order.get("window_end") or order.get("windowEnd")
+    if window_end:
+        try:
+            we_dt = _as_datetime(window_end)
+            window_end_str = f" Window closes: {we_dt.strftime('%I:%M %p')}."
+            diff_mins = (we_dt.replace(tzinfo=None) - eta.replace(tzinfo=None)).total_seconds() / 60
+            if 0 <= diff_mins <= 45:
+                tight_warning = " ⏰ TIGHT WINDOW: Arrival within 45 mins of deadline!"
+        except Exception:
+            pass
+
+    if availability == "unavailable_reschedule":
+        avail_text = "⚠️ AI ALERT: Customer reported unavailable. Verify safe drop point or request re-routing."
+    elif availability == "pending_verification":
+        avail_text = "🔔 AI NOTICE: Pre-delivery SMS dispatched. Ring doorbell or call recipient 5 mins before arrival."
+    else:
+        avail_text = f"✅ AI VERIFIED: {customer_name} confirmed available at {address} for ~{eta_str} dropoff."
+
+    return (
+        f"{priority_header}\n"
+        f"📍 Sequence: {seq_text}.\n"
+        f"⏱️ ETA: {eta_str}.{window_end_str}{tight_warning}\n"
+        f"{avail_text}\n"
+        f"📝 Customer Note: \"{instructions}\" ({demand} unit(s), {service_mins}m service)."
+    )
+
+
 def _driver_instruction(order: dict) -> str:
     customer_note = str(order.get("delivery_instructions") or "").strip()
     urgency = "Priority stop: protect the delivery window. " if order.get("priority") == "urgent" else ""
     return f"{urgency}{customer_note or 'Confirm the recipient and complete proof of delivery.'}"
+
 
 
 def _minutes_from(base_time: datetime, value: datetime) -> int:

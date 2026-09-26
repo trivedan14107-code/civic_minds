@@ -46,10 +46,11 @@ def test_optimizer_assigns_orders_without_exceeding_capacity() -> None:
     assert sum(route["load"] for route in result.routes) == 3
     assert all(route["load"] <= route["capacity"] for route in result.routes)
     assert all(
-        stop["instruction"] == "Ring the bell and confirm the recipient."
+        "Ring the bell and confirm the recipient." in stop["instruction"]
         for route in result.routes
         for stop in route["stops"]
     )
+
 
 
 def test_optimizer_reports_orders_unassigned_without_drivers() -> None:

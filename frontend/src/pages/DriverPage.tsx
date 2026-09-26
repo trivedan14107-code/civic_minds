@@ -146,15 +146,16 @@ export default function DriverPage() {
             </div>
           </div>
 
-          {/* Detailed Instructions */}
-          <div className="rounded-xl border border-slate-700 bg-black/40 p-4 space-y-1.5">
-            <div className="text-xs font-bold uppercase tracking-wider text-lime flex items-center gap-1.5">
-              📋 Detailed Delivery Instructions
+          {/* Detailed Structured AI Instructions */}
+          <div className="rounded-xl border border-lime/30 bg-lime/5 p-4 space-y-2">
+            <div className="text-xs font-black uppercase tracking-wider text-lime flex items-center gap-2">
+              <Bot size={18} /> Structured AI Delivery Guidance
             </div>
-            <p className="text-sm leading-relaxed text-slate-100 font-medium">
-              {nextOrder?.deliveryInstructions || next.instruction || "Deliver safely and confirm at the door."}
-            </p>
+            <div className="whitespace-pre-line text-xs sm:text-sm leading-relaxed text-slate-100 font-medium">
+              {next.instruction}
+            </div>
           </div>
+
 
           {/* Stop Actions */}
           <div className="grid gap-3 sm:grid-cols-2 pt-2">
@@ -240,11 +241,16 @@ export default function DriverPage() {
                   </div>
                 </div>
 
-                {/* Detailed Instruction for each stop in sequence */}
-                <div className="rounded-lg bg-black/40 p-2 text-slate-300 text-[11px] border border-white/5">
-                  <strong className="text-cyan">Instruction:</strong>{" "}
-                  {order?.deliveryInstructions || stop.instruction || "Deliver safely and confirm at the door."}
+                {/* Detailed Structured AI Instruction for each stop in sequence */}
+                <div className="rounded-lg bg-black/40 p-3 text-slate-200 text-xs border border-white/5 space-y-1">
+                  <div className="font-bold text-lime text-[11px] flex items-center gap-1">
+                    <Bot size={13} /> AI Delivery Guidance:
+                  </div>
+                  <div className="whitespace-pre-line leading-relaxed">
+                    {stop.instruction}
+                  </div>
                 </div>
+
               </div>
             );
           })}
